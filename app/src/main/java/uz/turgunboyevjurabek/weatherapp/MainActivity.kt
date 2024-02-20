@@ -30,7 +30,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -88,10 +92,13 @@ fun UI() {
 @Composable
 fun CustomAppBar(
 ){
+    val context = LocalContext.current
+    var isNightMode by remember { mutableStateOf(false) }
+
     Column(
         modifier=Modifier
             .fillMaxSize()
-            .paint(painter = painterResource(id = R.drawable.light_bac2),true, contentScale = ContentScale.Crop),
+            .paint(painter = painterResource(id = if (isNightMode) R.drawable.light_bac2 else R.drawable.night_bac ),true, contentScale = ContentScale.Crop),
         horizontalAlignment = Alignment.CenterHorizontally
     ){
         Row(modifier= Modifier
@@ -132,11 +139,7 @@ fun CustomAppBar(
                 stateOff = 0,
                 initialValue = 0
             ) {checked ->
-                if (checked){
-                    Toast.makeText(context, "true", Toast.LENGTH_SHORT).show()
-                }else{
-                    Toast.makeText(context, "false", Toast.LENGTH_SHORT).show()
-                }
+                isNightMode=checked
             }
         }//row
         val placeholderState = rememberPlaceholderState { true }
@@ -243,8 +246,10 @@ fun CustomSwitch(
                     scope.launch {
                         if (swipeableState.currentValue == stateOff) {
                             swipeableState.animateTo(stateOn)
+                            onCheckedChanged(true)
                         } else {
                             swipeableState.animateTo(stateOff)
+                            onCheckedChanged(false)
                         }
 
                     }

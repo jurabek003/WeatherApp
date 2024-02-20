@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,11 +39,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.fontResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -50,6 +55,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import androidx.wear.compose.material.FractionalThreshold
+import androidx.wear.compose.material.placeholderShimmer
+import androidx.wear.compose.material.rememberPlaceholderState
 import androidx.wear.compose.material.rememberSwipeableState
 import androidx.wear.compose.material.swipeable
 import kotlinx.coroutines.launch
@@ -63,7 +70,8 @@ class MainActivity : ComponentActivity() {
             WeatherAppTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     CustomAppBar()
@@ -80,25 +88,25 @@ fun UI() {
 
 @Composable
 fun CustomAppBar(
-    modifier: Modifier =Modifier
-        .fillMaxSize()
-) {
-    Column(modifier=Modifier
-        .fillMaxSize()
-    ) {
+){
+    Column(
+        modifier=Modifier
+            .fillMaxSize()
+            .paint(painter = painterResource(id = R.drawable.light_bac2),true, contentScale = ContentScale.Crop),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ){
         Row(modifier= Modifier
             .fillMaxWidth()
             .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Absolute.SpaceBetween
-        ) {
+        ){
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = "Location",
-
                 )
                 Text(
                     text = "Quqon",
@@ -114,8 +122,8 @@ fun CustomAppBar(
             }
             val context=LocalContext.current
             CustomSwitch(
-                height = 40.dp,
-                width = 90.dp,
+                height = 30.dp,
+                width = 70.dp,
                 circleButtonPadding = 5.dp,
                 outerBackgroundOnResource =R.drawable.light_switch,
                 outerBackgroundOffResource = R.drawable.night_switch,
@@ -131,7 +139,30 @@ fun CustomAppBar(
                     Toast.makeText(context, "false", Toast.LENGTH_SHORT).show()
                 }
             }
-        }
+        }//row
+        val placeholderState = rememberPlaceholderState { true }
+        Image(
+            painter = painterResource(id = R.drawable.ic_night),
+            contentDescription = null,
+            Modifier
+                .padding(top = 100.dp)
+                .placeholderShimmer(placeholderState)
+        )
+        Text(
+            text = "Thunder",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.ExtraBold,
+            fontFamily = FontFamily.SansSerif,
+            modifier=Modifier.padding(top = 20.dp)
+        )
+        Text(
+            text = "13°",
+            fontSize = 60.sp,
+            fontWeight = FontWeight.ExtraBold,
+            fontFamily = FontFamily.SansSerif,
+            modifier=Modifier.padding(top = 10.dp)
+        )
+
     }
 }
 @OptIn(ExperimentalWearMaterialApi::class)

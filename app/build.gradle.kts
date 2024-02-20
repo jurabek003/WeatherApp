@@ -1,6 +1,9 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id ("kotlin-kapt")
+    id ("com.google.dagger.hilt.android")
+
 }
 
 android {
@@ -67,4 +70,34 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    /**
+     * Dagger-hilt
+     */
+    implementation ("com.google.dagger:hilt-android:2.48")
+    kapt ("com.google.dagger:hilt-compiler:2.48")
+    implementation ("androidx.hilt:hilt-navigation-fragment:1.1.0")
+
+    /**
+     * Retrofit for API requests
+     */
+    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation ("com.squareup.retrofit2:converter-moshi:2.4.0")
+
+    /**
+     * ViewModel
+     */
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+    /**
+     * LoggingInterceptor
+     */
+    implementation("com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.2")
+
+    /**
+     * Coil
+     */
+    implementation("io.coil-kt:coil-compose:1.3.2")
+
 }

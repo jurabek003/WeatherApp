@@ -28,9 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Shapes
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -55,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import androidx.wear.compose.material.FractionalThreshold
+import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.placeholderShimmer
 import androidx.wear.compose.material.rememberPlaceholderState
 import androidx.wear.compose.material.rememberSwipeableState
@@ -142,7 +141,7 @@ fun CustomAppBar(
         }//row
         val placeholderState = rememberPlaceholderState { true }
         Image(
-            painter = painterResource(id = R.drawable.ic_night),
+            painter = painterResource(id = R.drawable.ic_light),
             contentDescription = null,
             Modifier
                 .padding(top = 100.dp)

@@ -1,8 +1,11 @@
-@file:OptIn(ExperimentalWearMaterialApi::class, ExperimentalWearMaterialApi::class)
+@file:OptIn(ExperimentalWearMaterialApi::class, ExperimentalWearMaterialApi::class,
+    ExperimentalCoilApi::class
+)
 
 package uz.turgunboyevjurabek.weatherapp
 
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -30,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,14 +43,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.fontResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -55,17 +55,27 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Observer
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.wear.compose.material.Colors
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import androidx.wear.compose.material.FractionalThreshold
 import androidx.wear.compose.material.Text
-import androidx.wear.compose.material.placeholderShimmer
-import androidx.wear.compose.material.rememberPlaceholderState
 import androidx.wear.compose.material.rememberSwipeableState
 import androidx.wear.compose.material.swipeable
+import coil.annotation.ExperimentalCoilApi
+import coil.compose.rememberImagePainter
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import uz.turgunboyevjurabek.weatherapp.Vm.CurrentWeatherViewModel
+import uz.turgunboyevjurabek.weatherapp.model.madels.current2.Current2
 import uz.turgunboyevjurabek.weatherapp.ui.theme.WeatherAppTheme
+import uz.turgunboyevjurabek.weatherapp.utils.Status
 import kotlin.math.roundToInt
-
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,7 +87,34 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    CustomAppBar()
+                    val scope= rememberCoroutineScope()
+                    val context = LocalContext.current
+                    val lat =40.5409
+                    val lon = 70.9483
+                    val viewModel=viewModel<CurrentWeatherViewModel>()
+
+                    var data by remember{
+                        mutableStateOf(Current2())
+                    }
+                    LaunchedEffect(key1 = true){
+                        viewModel.getCurrentWeather(lat, lon).observe(this@MainActivity, Observer {
+                            when(it.status){
+                                Status.LOADING -> {
+
+                                }
+                                Status.ERROR -> {
+                                    Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                                }
+                                Status.SUCCESS -> {
+                                    data= it.data!!
+                                }
+                            }
+                        })
+                        scope.launch(Dispatchers.Main){
+                            Toast.makeText(context, "$data", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    CustomAppBar(data)
                 }
             }
         }
@@ -86,19 +123,24 @@ class MainActivity : ComponentActivity() {
 @Preview(showSystemUi = true)
 @Composable
 fun UI() {
-    CustomAppBar()
+//    CustomAppBar()
 }
 
 @Composable
 fun CustomAppBar(
+    data:Current2
 ){
-    val context = LocalContext.current
+
     var isNightMode by remember { mutableStateOf(false) }
 
     Column(
-        modifier=Modifier
-            .fillMaxSize()
-            .paint(painter = painterResource(id = if (isNightMode) R.drawable.light_bac2 else R.drawable.night_bac ),true, contentScale = ContentScale.Crop),
+        modifier = Modifier
+            .paint(
+                painter = painterResource(id = if (isNightMode) R.drawable.light_bac2 else R.drawable.night_bac),
+                true,
+                contentScale = ContentScale.Crop
+            )
+            .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ){
         Row(modifier= Modifier
@@ -114,19 +156,21 @@ fun CustomAppBar(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = "Location",
                 )
-                Text(
-                    text = "Quqon",
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 18.sp,
-                )
-                Text(
-                    text = "Uzbekistan",
-                    fontSize = 14.sp,
-                    modifier=Modifier
-                        .padding(5.dp)
-                )
+                if (!data.name.equals(null) || !data.sys?.country.equals(null)){
+                    Text(
+                        text = data.name.toString(),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 18.sp,
+                    )
+                    Text(
+                        text = data.sys?.country.toString(),
+                        fontSize = 14.sp,
+                        modifier=Modifier
+                            .padding(5.dp)
+                    )
+                }
             }
-            val context=LocalContext.current
+
             CustomSwitch(
                 height = 30.dp,
                 width = 70.dp,
@@ -142,31 +186,43 @@ fun CustomAppBar(
                 isNightMode=checked
             }
         }//row
-        val placeholderState = rememberPlaceholderState { true }
-        Image(
-            painter = painterResource(id = R.drawable.ic_light),
-            contentDescription = null,
-            Modifier
-                .padding(top = 100.dp)
-                .placeholderShimmer(placeholderState)
-        )
-        Text(
-            text = "Thunder",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.ExtraBold,
-            fontFamily = FontFamily.SansSerif,
-            modifier=Modifier.padding(top = 20.dp)
-        )
-        Text(
-            text = "13°",
-            fontSize = 60.sp,
-            fontWeight = FontWeight.ExtraBold,
-            fontFamily = FontFamily.SansSerif,
-            modifier=Modifier.padding(top = 10.dp)
-        )
+
+        if (data.weather!=null){
+            val imgUrl="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png"
+            Image(
+                painter = rememberImagePainter(data= imgUrl,
+                    builder = {
+                        crossfade(1500)
+                    }),
+                contentDescription = null,
+                Modifier
+                    .padding(top = 100.dp)
+                    .size(120.dp)
+            )
+        }
+
+        if(data.main!=null){
+            val g= data.main.temp_max?.minus(273.0)?.toInt()
+            Text(
+                text = data.weather!![0].description.toString(),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.ExtraBold,
+                fontFamily = FontFamily.SansSerif,
+                modifier=Modifier.padding(top = 20.dp)
+            )
+            Text(
+                text = "$g℃",
+                fontSize = 60.sp,
+                fontWeight = FontWeight.ExtraBold,
+                fontFamily = FontFamily.SansSerif,
+                modifier=Modifier.padding(top = 10.dp)
+            )
+        }
+
 
     }
 }
+
 @OptIn(ExperimentalWearMaterialApi::class)
 @Composable
 fun CustomSwitch(

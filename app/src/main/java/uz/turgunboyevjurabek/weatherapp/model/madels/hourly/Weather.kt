@@ -5,11 +5,11 @@ import com.google.gson.annotations.SerializedName
 
 data class Weather(
     @SerializedName("description")
-    val description: String,
+    val description: String?=null,
     @SerializedName("icon")
-    val icon: String,
+    val icon: String?=null,
     @SerializedName("id")
-    val id: Int,
+    val id: Int?=null,
     @SerializedName("main")
-    val main: String
+    val main: String?=null
 )

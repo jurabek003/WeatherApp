@@ -4,12 +4,15 @@
 
 package uz.turgunboyevjurabek.weatherapp
 
+import android.annotation.SuppressLint
 import android.icu.text.LocaleDisplayNames.UiListItem
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,9 +26,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -73,6 +78,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.material.Colors
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import androidx.wear.compose.material.FractionalThreshold
+import androidx.wear.compose.material.Scaffold
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.rememberSwipeableState
 import androidx.wear.compose.material.swipeable
@@ -84,6 +90,7 @@ import kotlinx.coroutines.launch
 import uz.turgunboyevjurabek.weatherapp.Vm.CurrentWeatherViewModel
 import uz.turgunboyevjurabek.weatherapp.Vm.HourlyViewModel
 import uz.turgunboyevjurabek.weatherapp.model.madels.current2.Current2
+import uz.turgunboyevjurabek.weatherapp.model.madels.hourly.ApiHourly
 import uz.turgunboyevjurabek.weatherapp.model.madels.hourly.Hourly
 import uz.turgunboyevjurabek.weatherapp.model.madels.hourly.Weather
 import uz.turgunboyevjurabek.weatherapp.ui.theme.WeatherAppTheme
@@ -91,8 +98,15 @@ import uz.turgunboyevjurabek.weatherapp.utils.Status
 import kotlin.math.roundToInt
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT
+            )
+        )
         setContent {
             WeatherAppTheme {
                 // A surface container using the 'background' color from the theme
@@ -101,59 +115,65 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val scope= rememberCoroutineScope()
-                    val context = LocalContext.current
-                    val lat =40.5409
-                    val lon = 70.9483
-                    val viewModel=viewModel<CurrentWeatherViewModel>()
-
                     var data by remember{
                         mutableStateOf(Current2())
                     }
-                    LaunchedEffect(key1 = true){
-                        viewModel.getCurrentWeather(lat, lon).observe(this@MainActivity, Observer {
-                            when(it.status){
-                                Status.LOADING -> {
-
-                                }
-                                Status.ERROR -> {
-                                    Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-                                }
-                                Status.SUCCESS -> {
-                                    data= it.data!!
-                                }
-                            }
-                        })
-                    }
-                    CustomAppBar(data)
-
-                    val viewModel2=viewModel<HourlyViewModel>()
-                    LaunchedEffect(key1 = true){
-                        viewModel2.getHourlyData(lat, lon).observe(this@MainActivity, Observer {
-                            when(it.status){
-                                Status.LOADING -> {}
-                                Status.ERROR -> {
-                                    Toast.makeText(this@MainActivity, it.message, Toast.LENGTH_SHORT)
-                                        .show()
-                                }
-                                Status.SUCCESS -> {
-                                    Toast.makeText(this@MainActivity, "keldi ", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        })
+                    var data2 by remember{
+                        mutableStateOf(ApiHourly())
                     }
 
+                   androidx.compose.material3.Scaffold() {it->
+                       Column(modifier = Modifier
+                           .fillMaxSize()
+                           .padding(bottom = it.calculateBottomPadding())
+                           .padding(top = it.calculateTopPadding())
+                       ) {
+                           val context = LocalContext.current
+                           val lat =40.5409
+                           val lon = 70.9483
+                           val viewModel=viewModel<CurrentWeatherViewModel>()
+
+                           LaunchedEffect(key1 = true){
+                               viewModel.getCurrentWeather(lat, lon).observe(this@MainActivity, Observer {
+                                   when(it.status){
+                                       Status.LOADING -> {
+
+                                       }
+                                       Status.ERROR -> {
+                                           Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                                       }
+                                       Status.SUCCESS -> {
+                                           data= it.data!!
+                                       }
+                                   }
+                               })
+                           }
+                           CustomAppBar(data)
+                           val viewModel2=viewModel<HourlyViewModel>()
+                           LaunchedEffect(key1 = true){
+                               viewModel2.getHourlyData(lat, lon).observe(this@MainActivity, Observer {
+                                   when(it.status){
+                                       Status.LOADING -> {}
+                                       Status.ERROR -> {
+                                           Toast.makeText(this@MainActivity, it.message, Toast.LENGTH_SHORT)
+                                               .show()
+                                       }
+                                       Status.SUCCESS -> {
+                                           Toast.makeText(this@MainActivity, "keldi ", Toast.LENGTH_SHORT).show()
+                                           data2= it.data!!
+                                       }
+                                   }
+                               })
+                           }
+
+                       }
+                   }
+                    WithScaffoldSheet(apiHourly =data2 )
                 }
             }
         }
     }
 }
-@Preview(showSystemUi = true)
-@Composable
-fun UI() {
-//    CustomAppBar()
-}
-
 @Composable
 fun CustomAppBar(
     data:Current2
@@ -252,16 +272,18 @@ fun CustomAppBar(
     }
 }
 @Composable
-fun WithScaffoldSheet(hourly: Hourly) {
+fun WithScaffoldSheet(apiHourly: ApiHourly) {
     val scaffoldState= rememberBottomSheetScaffoldState()
-    val sheetState= rememberModalBottomSheetState()
+
     BottomSheetScaffold(
         scaffoldState=scaffoldState,
         sheetContainerColor = Color.Transparent,
         sheetContent ={
             LazyRow{
-                items(hourly.weather.size){it->
-                    UiListItem(hourly,it)
+                apiHourly.list?.size?.let {
+                    items(it){ it->
+                        UiListItem(apiHourly.list[it],it)
+                    }
                 }
             }
         }
@@ -273,12 +295,12 @@ fun WithScaffoldSheet(hourly: Hourly) {
 @Composable
 fun UiListItem(weather: Hourly,it:Int) {
     Column(modifier = Modifier
-        .padding(5.dp),
+        .padding(10.dp),
     ) {
         Card(
             modifier = Modifier
                 .height(150.dp)
-                .width(70.dp)
+                .width(80.dp)
         ) {
             Column(
                 Modifier
@@ -295,14 +317,23 @@ fun UiListItem(weather: Hourly,it:Int) {
                 verticalArrangement = Arrangement.SpaceAround
             ) {
                 Image(
-                    painter = rememberImagePainter(data = "https://openweathermap.org/img/wn/${weather.weather[it].icon}@2x.png"),
+                    painter = rememberImagePainter(data = "https://openweathermap.org/img/wn/${weather.weather?.get(0)?.icon}@2x.png"),
                     contentDescription = null,
                     modifier = Modifier
                         .size(30.dp)
                 )
-                val g=weather.main.tempMax-273.0
-                Text(text = "${g}°", fontFamily = FontFamily.SansSerif, fontSize = 20.sp, color = Color.White)
-                Text(text = weather.dtTxt,fontFamily = FontFamily.SansSerif, fontSize = 13.sp, color = Color.White)
+                val g= weather.main?.tempMax?.minus(273.0)?.toInt()
+                Text(text = "${g}°", fontFamily = FontFamily.SansSerif, fontSize = 25.sp, color = Color.White)
+                val time=weather.dtTxt.toString()
+                val sana=time.substring(0..9)
+                val vaqt=time.substring(11..time.lastIndex-3)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = vaqt,fontFamily = FontFamily.SansSerif, fontSize = 15.sp, color = Color.White)
+                    Text(text =sana ,fontFamily = FontFamily.SansSerif, fontSize = 13.sp, color = Color.White)
+                }
+
             }
         }
     }

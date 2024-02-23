@@ -5,9 +5,9 @@ import com.google.gson.annotations.SerializedName
 
 data class Wind(
     @SerializedName("deg")
-    val deg: Int,
+    val deg: Int?=null,
     @SerializedName("gust")
-    val gust: Double,
+    val gust: Double?=null,
     @SerializedName("speed")
-    val speed: Double
+    val speed: Double?=null
 )

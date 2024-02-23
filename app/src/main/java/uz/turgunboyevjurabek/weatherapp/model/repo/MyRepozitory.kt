@@ -5,5 +5,5 @@ import javax.inject.Inject
 
 class MyRepozitory @Inject constructor(private val apiService: ApiService) {
     suspend fun getCurrentWeather(lat:Double,lan:Double)=apiService.getCurrentWeather(lat,lan)
-
+    suspend fun getMyHourlyWeather(lat:Double,lan:Double)=apiService.getAllHourly(lat,lan)
 }

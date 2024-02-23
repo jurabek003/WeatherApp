@@ -1,9 +1,10 @@
 @file:OptIn(ExperimentalWearMaterialApi::class, ExperimentalWearMaterialApi::class,
-    ExperimentalCoilApi::class
+    ExperimentalCoilApi::class, ExperimentalMaterial3Api::class
 )
 
 package uz.turgunboyevjurabek.weatherapp
 
+import android.icu.text.LocaleDisplayNames.UiListItem
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,13 +27,21 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -71,7 +82,10 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import uz.turgunboyevjurabek.weatherapp.Vm.CurrentWeatherViewModel
+import uz.turgunboyevjurabek.weatherapp.Vm.HourlyViewModel
 import uz.turgunboyevjurabek.weatherapp.model.madels.current2.Current2
+import uz.turgunboyevjurabek.weatherapp.model.madels.hourly.Hourly
+import uz.turgunboyevjurabek.weatherapp.model.madels.hourly.Weather
 import uz.turgunboyevjurabek.weatherapp.ui.theme.WeatherAppTheme
 import uz.turgunboyevjurabek.weatherapp.utils.Status
 import kotlin.math.roundToInt
@@ -110,11 +124,25 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         })
-                        scope.launch(Dispatchers.Main){
-                            Toast.makeText(context, "$data", Toast.LENGTH_SHORT).show()
-                        }
                     }
                     CustomAppBar(data)
+
+                    val viewModel2=viewModel<HourlyViewModel>()
+                    LaunchedEffect(key1 = true){
+                        viewModel2.getHourlyData(lat, lon).observe(this@MainActivity, Observer {
+                            when(it.status){
+                                Status.LOADING -> {}
+                                Status.ERROR -> {
+                                    Toast.makeText(this@MainActivity, it.message, Toast.LENGTH_SHORT)
+                                        .show()
+                                }
+                                Status.SUCCESS -> {
+                                    Toast.makeText(this@MainActivity, "keldi ", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        })
+                    }
+
                 }
             }
         }
@@ -218,8 +246,65 @@ fun CustomAppBar(
                 modifier=Modifier.padding(top = 10.dp)
             )
         }
+        
 
 
+    }
+}
+@Composable
+fun WithScaffoldSheet(hourly: Hourly) {
+    val scaffoldState= rememberBottomSheetScaffoldState()
+    val sheetState= rememberModalBottomSheetState()
+    BottomSheetScaffold(
+        scaffoldState=scaffoldState,
+        sheetContainerColor = Color.Transparent,
+        sheetContent ={
+            LazyRow{
+                items(hourly.weather.size){it->
+                    UiListItem(hourly,it)
+                }
+            }
+        }
+    ) {
+    }
+
+}
+
+@Composable
+fun UiListItem(weather: Hourly,it:Int) {
+    Column(modifier = Modifier
+        .padding(5.dp),
+    ) {
+        Card(
+            modifier = Modifier
+                .height(150.dp)
+                .width(70.dp)
+        ) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White,
+                                Color.Magenta
+                            )
+                        )
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceAround
+            ) {
+                Image(
+                    painter = rememberImagePainter(data = "https://openweathermap.org/img/wn/${weather.weather[it].icon}@2x.png"),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(30.dp)
+                )
+                val g=weather.main.tempMax-273.0
+                Text(text = "${g}°", fontFamily = FontFamily.SansSerif, fontSize = 20.sp, color = Color.White)
+                Text(text = weather.dtTxt,fontFamily = FontFamily.SansSerif, fontSize = 13.sp, color = Color.White)
+            }
+        }
     }
 }
 

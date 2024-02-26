@@ -5,9 +5,8 @@
 package uz.turgunboyevjurabek.weatherapp
 
 import android.annotation.SuppressLint
-import android.icu.text.LocaleDisplayNames.UiListItem
 import android.os.Bundle
-import android.view.View
+
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -22,31 +21,34 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Card
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,47 +68,41 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.wear.compose.material.Colors
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import androidx.wear.compose.material.FractionalThreshold
-import androidx.wear.compose.material.Scaffold
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.TopAppBarColors
+import androidx.wear.compose.material.Colors
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.rememberSwipeableState
 import androidx.wear.compose.material.swipeable
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import uz.turgunboyevjurabek.weatherapp.Vm.CurrentWeatherViewModel
 import uz.turgunboyevjurabek.weatherapp.Vm.HourlyViewModel
+import uz.turgunboyevjurabek.weatherapp.model.madels.MenuItem
 import uz.turgunboyevjurabek.weatherapp.model.madels.current2.Current2
 import uz.turgunboyevjurabek.weatherapp.model.madels.hourly.ApiHourly
 import uz.turgunboyevjurabek.weatherapp.model.madels.hourly.Hourly
-import uz.turgunboyevjurabek.weatherapp.model.madels.hourly.Weather
 import uz.turgunboyevjurabek.weatherapp.ui.theme.WeatherAppTheme
 import uz.turgunboyevjurabek.weatherapp.utils.Status
+import uz.turgunboyevjurabek.weatherapp.view.DrawerBody
+import uz.turgunboyevjurabek.weatherapp.view.DrawerHeader
 import kotlin.math.roundToInt
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            )
-        )
         setContent {
             WeatherAppTheme {
                 // A surface container using the 'background' color from the theme
@@ -115,6 +111,10 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    val rememberDrawerState= rememberDrawerState(initialValue = DrawerValue.Closed)
+                    val scaffoldState= rememberBottomSheetScaffoldState()
+                    val scope= rememberCoroutineScope()
+                    val context=LocalContext.current
                     var data by remember{
                         mutableStateOf(Current2())
                     }
@@ -122,58 +122,127 @@ class MainActivity : ComponentActivity() {
                         mutableStateOf(ApiHourly())
                     }
 
-                   androidx.compose.material3.Scaffold() {it->
-                       Column(modifier = Modifier
-                           .fillMaxSize()
-                           .padding(bottom = it.calculateBottomPadding())
-                           .padding(top = it.calculateTopPadding())
-                       ) {
-                           val context = LocalContext.current
-                           val lat =40.5409
-                           val lon = 70.9483
-                           val viewModel=viewModel<CurrentWeatherViewModel>()
+                    Scaffold(
 
-                           LaunchedEffect(key1 = true){
-                               viewModel.getCurrentWeather(lat, lon).observe(this@MainActivity, Observer {
-                                   when(it.status){
-                                       Status.LOADING -> {
+                    ) {
+                        Column(modifier = Modifier
+                            .fillMaxSize()
 
-                                       }
-                                       Status.ERROR -> {
-                                           Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-                                       }
-                                       Status.SUCCESS -> {
-                                           data= it.data!!
-                                       }
-                                   }
-                               })
-                           }
-                           CustomAppBar(data)
-                           val viewModel2=viewModel<HourlyViewModel>()
-                           LaunchedEffect(key1 = true){
-                               viewModel2.getHourlyData(lat, lon).observe(this@MainActivity, Observer {
-                                   when(it.status){
-                                       Status.LOADING -> {}
-                                       Status.ERROR -> {
-                                           Toast.makeText(this@MainActivity, it.message, Toast.LENGTH_SHORT)
-                                               .show()
-                                       }
-                                       Status.SUCCESS -> {
-                                           Toast.makeText(this@MainActivity, "keldi ", Toast.LENGTH_SHORT).show()
-                                           data2= it.data!!
-                                       }
-                                   }
-                               })
-                           }
+                        ) {
+                            val context = LocalContext.current
+                            val lat =40.5409
+                            val lon = 70.9483
+                            val viewModel=viewModel<CurrentWeatherViewModel>()
 
-                       }
-                   }
-                    WithScaffoldSheet(apiHourly =data2 )
+                            LaunchedEffect(key1 = true){
+                                viewModel.getCurrentWeather(lat, lon).observe(this@MainActivity, Observer {
+                                    when(it.status){
+                                        Status.LOADING -> {
+
+                                        }
+                                        Status.ERROR -> {
+                                            Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                                        }
+                                        Status.SUCCESS -> {
+                                            data= it.data!!
+                                        }
+                                    }
+                                })
+                            }
+                            CustomAppBar(data)
+                            val viewModel2=viewModel<HourlyViewModel>()
+                            LaunchedEffect(key1 = true){
+                                viewModel2.getHourlyData(lat, lon).observe(this@MainActivity, Observer {
+                                    when(it.status){
+                                        Status.LOADING -> {}
+                                        Status.ERROR -> {
+                                            Toast.makeText(this@MainActivity, it.message, Toast.LENGTH_SHORT)
+                                                .show()
+                                        }
+                                        Status.SUCCESS -> {
+                                            Toast.makeText(this@MainActivity, "keldi ", Toast.LENGTH_SHORT).show()
+                                            data2= it.data!!
+                                        }
+                                    }
+                                })
+                            }
+                        }
+                        WithScaffoldSheet(apiHourly = data2,scaffoldState)
+                    }
+
+                    NavigationDrawer(rememberDrawerState = rememberDrawerState)
+
+
                 }
             }
         }
     }
 }
+
+@Composable
+fun NavigationDrawer(rememberDrawerState: DrawerState) {
+    val contex= LocalContext.current
+    ModalNavigationDrawer(
+        drawerState = rememberDrawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                DrawerHeader()
+                DrawerBody(
+                    items = listOf(
+                        MenuItem(
+                            id= "Home",
+                            title="Home",
+                            contentDescriptor = "null",
+                            icon = Icons.Default.Home
+                        ),   MenuItem(
+                            id= "Home1",
+                            title="Home",
+                            contentDescriptor ="null",
+                            icon = Icons.Default.Home
+                        ),   MenuItem(
+                            id= "Home2",
+                            title="Home",
+                            contentDescriptor = "null",
+                            icon = Icons.Default.Home
+                        ),  MenuItem(
+                            id= "Home3",
+                            title="Home",
+                            contentDescriptor = "null",
+                            icon = Icons.Default.Home
+                        ),  MenuItem(
+                            id= "Home4",
+                            title="Home",
+                            contentDescriptor = "null",
+                            icon = Icons.Default.Home
+                        ),
+                    ),
+                    onItemClick ={
+                        when(it.id){
+                            "Home"->{
+                                Toast.makeText(contex, "Stars clicked", Toast.LENGTH_SHORT).show()
+                            }
+                            "Home1"->{
+                                Toast.makeText(contex, "Settings clicked", Toast.LENGTH_SHORT).show()
+                            }
+                            "Home2"->{
+                                Toast.makeText(contex, "Help clicked", Toast.LENGTH_SHORT).show()
+                            }
+                            "Home3"->{
+                                Toast.makeText(contex, "Home clicked", Toast.LENGTH_SHORT).show()
+                            }
+                            "Home4"->{
+                                Toast.makeText(contex, "Home clicked", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                )
+            }
+    }) {
+
+    }
+}
+
+
 @Composable
 fun CustomAppBar(
     data:Current2
@@ -232,6 +301,9 @@ fun CustomAppBar(
                 initialValue = 0
             ) {checked ->
                 isNightMode=checked
+
+
+
             }
         }//row
 
@@ -272,11 +344,11 @@ fun CustomAppBar(
     }
 }
 @Composable
-fun WithScaffoldSheet(apiHourly: ApiHourly) {
-    val scaffoldState= rememberBottomSheetScaffoldState()
+fun WithScaffoldSheet(apiHourly: ApiHourly,rememberBottomSheetScaffoldState: BottomSheetScaffoldState) {
+
 
     BottomSheetScaffold(
-        scaffoldState=scaffoldState,
+        scaffoldState=rememberBottomSheetScaffoldState,
         sheetContainerColor = Color.Transparent,
         sheetContent ={
             LazyRow{
